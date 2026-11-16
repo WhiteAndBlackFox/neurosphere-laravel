@@ -49,7 +49,7 @@ fresh: ## Пересоздать БД и заполнить демо-данны�
 	$(EXEC) php artisan migrate:fresh --seed --force
 
 test: ## Прогнать тесты
-	$(EXEC) php artisan test
+	$(EXEC) ./vendor/bin/phpunit --configuration=tools/phpunit.xml
 
 lint: lint-syntax lint-pint lint-larastan ## Проверить синтаксис, стиль и типы
 
@@ -57,12 +57,12 @@ lint-syntax: ## Проверить синтаксис PHP
 	$(EXEC) sh -c 'find app bootstrap config routes tests database public -name "*.php" ! -path "bootstrap/cache/*" -print0 | xargs -0 -n1 php -l && php -l artisan'
 
 lint-pint: ## Проверить стиль кода
-	$(EXEC) ./vendor/bin/pint --test
+	$(EXEC) ./vendor/bin/pint --config=tools/pint.json --test
 
 lint-larastan: ## Проверить типы через Larastan
-	$(EXEC) ./vendor/bin/phpstan analyse --memory-limit=512M --no-progress
+	$(EXEC) ./vendor/bin/phpstan analyse --configuration=tools/phpstan.neon --memory-limit=512M --no-progress
 
 fix: ## Исправить стиль кода
-	$(EXEC) ./vendor/bin/pint
+	$(EXEC) ./vendor/bin/pint --config=tools/pint.json
 
 ci: lint test ## Запустить все проверки и тесты без автоисправлений

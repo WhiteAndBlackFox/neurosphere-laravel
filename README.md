@@ -41,5 +41,10 @@ use another port. Bind mounts use UID/GID 1000 by default; set `LOCAL_UID` and
 | `make fix` | Apply Pint formatting |
 | `make ci` | Run lint and tests |
 
-Pint/Larastan project configuration is added in the next implementation phase.
+Quality-tool configuration lives in `tools/`: `pint.json`, `phpstan.neon`, and
+`phpunit.xml`. Make targets pass these paths explicitly; `composer test` also
+uses the PHPUnit configuration there. Pint requires `declare(strict_types=1)`;
+Larastan runs at level 6. `make lint` and `make ci` do not fix source files;
+use `make fix` to apply formatting explicitly. Tests force the testing environment
+and use an in-memory SQLite database, an array cache and a synchronous queue.
 The generation endpoints and demo seeders are still being implemented.
