@@ -9,7 +9,14 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property-read int $id
+ * @property int $user_id
+ * @property GenerationStatus $status
+ * @property Carbon|null $quota_refunded_at
+ */
 #[Fillable([
     'user_id',
     'type',
