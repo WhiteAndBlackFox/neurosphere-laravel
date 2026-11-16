@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: secret
+          MYSQL_DATABASE: neurosphere
+          MYSQL_USER: app
+          MYSQL_PASSWORD: secret
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -psecret --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+          --health-start-period=20s
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      APP_DEBUG: 'false'
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: neurosphere
+      DB_USERNAME: app
+      DB_PASSWORD: secret
+      DB_URL: ''
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, redis, intl, bcmath, pcntl, mbstring, dom, xml, xmlwriter
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate Composer configuration
+        run: composer validate --strict
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Check PHP syntax
+        run: |
+          find app bootstrap config routes tests database public -name '*.php' ! -path 'bootstrap/cache/*' -print0 | xargs -0 -n1 php -l
+          php -l artisan
+
+      - name: Check code style
+        run: ./vendor/bin/pint --config=tools/pint.json --test
+
+      - name: Larastan (level 6)
+        run: ./vendor/bin/phpstan analyse --configuration=tools/phpstan.neon --memory-limit=512M --no-progress
+
+      - name: Run migrations and seeders
+        run: |
+          php artisan migrate --force
+          php artisan db:seed --force
+
+      - name: Tests (MySQL)
+        run: ./vendor/bin/phpunit --configuration=tools/phpunit-ci.xml

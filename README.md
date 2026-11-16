@@ -48,3 +48,10 @@ Larastan runs at level 6. `make lint` and `make ci` do not fix source files;
 use `make fix` to apply formatting explicitly. Tests force the testing environment
 and use an in-memory SQLite database, an array cache and a synchronous queue.
 The generation endpoints and demo seeders are still being implemented.
+
+GitHub Actions runs on pull requests and pushes to `main`/`develop`. The `quality`
+job installs PHP 8.3 and Composer dependencies, checks PHP syntax/Pint/Larastan,
+runs migrations and seeders, then runs PHPUnit against MySQL 8 with Redis 7
+available. CI uses `tools/phpunit-ci.xml`; local `make test` continues to use
+SQLite in memory. Both profiles use an array cache and synchronous queue for tests.
+The workflow checks code without applying formatting fixes.
