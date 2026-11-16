@@ -1,9 +1,13 @@
 x-app: &app
-  build: .
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
   user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
-  env_file: .env
+  env_file: ../.env
   volumes:
-    - .:/var/www/html
+    - ..:/var/www/html
+  networks:
+    - neurosphere
   depends_on:
     mysql:
       condition: service_healthy
@@ -19,8 +23,10 @@ services:
     ports:
       - "127.0.0.1:${APP_PORT:-8080}:80"
     volumes:
-      - ./public:/var/www/html/public:ro
-      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../public:/var/www/html/public:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - neurosphere
     depends_on:
       - app
 
@@ -33,6 +39,8 @@ services:
       MYSQL_PASSWORD: "${DB_PASSWORD:-secret}"
     volumes:
       - mysql-data:/var/lib/mysql
+    networks:
+      - neurosphere
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 5s
@@ -42,6 +50,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    networks:
+      - neurosphere
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -56,3 +66,5 @@ services:
 
 volumes:
   mysql-data:
+networks:
+  neurosphere:
