@@ -37,4 +37,8 @@ return [
         ],
     ],
 
+    'external_ai' => [
+        'slow_delay_ms' => env('EXTERNAL_AI_SLOW_DELAY_MS', 3000),
+    ],
+
 ];
