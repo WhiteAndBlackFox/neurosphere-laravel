@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Exceptions\QuotaExceededException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -18,4 +21,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn () => true,
         );
+
+        $exceptions->render(function (QuotaExceededException $e, Request $request): JsonResponse {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'error' => ['code' => 'QUOTA_EXCEEDED'],
+            ], 422);
+        });
     })->create();
