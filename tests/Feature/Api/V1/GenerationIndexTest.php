@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Api\V1;
 
 use App\Enums\GenerationStatus;
+use App\Models\GenerationTask;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -49,5 +50,19 @@ final class GenerationIndexTest extends TestCase
         $response = $this->getJson('/api/v1/generations')->assertOk();
 
         $this->assertCount(1, $response->json('data'));
+    }
+
+    public function test_it_paginates_results(): void
+    {
+        $user = User::factory()->create();
+        GenerationTask::factory()->count(16)->for($user)->create();
+        Sanctum::actingAs($user);
+
+        $firstPage = $this->getJson('/api/v1/generations')->assertOk();
+        $this->assertCount(15, $firstPage->json('data'));
+        $this->assertSame(2, $firstPage->json('meta.last_page'));
+
+        $secondPage = $this->getJson('/api/v1/generations?page=2')->assertOk();
+        $this->assertCount(1, $secondPage->json('data'));
     }
 }
