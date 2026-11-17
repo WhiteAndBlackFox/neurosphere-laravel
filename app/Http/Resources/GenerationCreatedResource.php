@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources;
 
 use App\Models\GenerationTask;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -32,5 +33,10 @@ final class GenerationCreatedResource extends JsonResource
             'status' => $this->resource->status->value,
             'quota_remaining' => $this->quotaRemaining,
         ];
+    }
+
+    public function withResponse(Request $request, JsonResponse $response): void
+    {
+        $response->setStatusCode(202);
     }
 }
