@@ -1,0 +1,71 @@
+x-app: &app
+  build:
+    context: ..
+    dockerfile: docker/Dockerfile
+    target: prod
+  env_file: ../.env
+  restart: always
+  networks:
+    - neurosphere
+  depends_on:
+    mysql:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  app:
+    <<: *app
+
+  nginx:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: nginx-prod
+    restart: always
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:80"
+    networks:
+      - neurosphere
+    depends_on:
+      - app
+
+  mysql:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-secret}"
+      MYSQL_DATABASE: "${DB_DATABASE:-neurosphere}"
+      MYSQL_USER: "${DB_USERNAME:-app}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:-secret}"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - neurosphere
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    networks:
+      - neurosphere
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  queue-worker:
+    <<: *app
+    command: php artisan queue:work --tries=3 --timeout=120
+    stop_grace_period: 130s
+
+volumes:
+  mysql-data:
+networks:
+  neurosphere:

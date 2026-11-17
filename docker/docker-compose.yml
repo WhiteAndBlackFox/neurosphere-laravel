@@ -2,6 +2,7 @@ x-app: &app
   build:
     context: ..
     dockerfile: docker/Dockerfile
+    target: dev
   user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
   env_file: ../.env
   volumes:
