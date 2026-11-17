@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\GenerationStatus;
+use Database\Factories\GenerationTaskFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,6 +31,9 @@ use Illuminate\Support\Carbon;
 ])]
 class GenerationTask extends Model
 {
+    /** @use HasFactory<GenerationTaskFactory> */
+    use HasFactory;
+
     /**
      * Get the attributes that should be cast.
      *
