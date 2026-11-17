@@ -15,7 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // This is a stateless JSON API with no "login" web route to redirect
+        // guests to; without this, unauthenticated requests that don't send
+        // `Accept: application/json` 500 on RouteNotFoundException instead
+        // of returning a 401.
+        $middleware->redirectGuestsTo(fn () => null);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

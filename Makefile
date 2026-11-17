@@ -5,14 +5,15 @@ COMPOSE_PROJECT_NAME ?= $(notdir $(PROJECT_ROOT))
 COMPOSE_BIN := $(shell if docker compose version >/dev/null 2>&1; then printf 'docker compose'; elif docker-compose version >/dev/null 2>&1; then printf 'docker-compose'; fi)
 COMPOSE := $(COMPOSE_BIN) --project-name "$(COMPOSE_PROJECT_NAME)" --env-file "$(PROJECT_ROOT)/.env" -f "$(PROJECT_ROOT)/docker/docker-compose.yml"
 EXEC := $(COMPOSE) exec -T app
+COMPOSE_PROD := $(COMPOSE_BIN) --project-name "$(COMPOSE_PROJECT_NAME)-prod" --env-file "$(PROJECT_ROOT)/.env" -f "$(PROJECT_ROOT)/docker/docker-compose.prod.yml"
 
 # Make standalone Compose delegate builds to Docker so Dockerfile.dockerignore applies.
 export DOCKER_BUILDKIT := 1
 export COMPOSE_DOCKER_CLI_BUILD := 1
 
-.PHONY: check-compose help up down restart sh migrate seed fresh test lint lint-syntax lint-pint lint-larastan fix ci
+.PHONY: check-compose help up down restart sh migrate seed fresh test lint lint-syntax lint-pint lint-larastan fix ci swagger up-prod down-prod
 
-up down sh migrate seed fresh test lint-syntax lint-pint lint-larastan fix: | check-compose
+up down sh migrate seed fresh test lint-syntax lint-pint lint-larastan fix swagger: | check-compose
 
 check-compose:
 	@if [ -z "$(COMPOSE_BIN)" ]; then printf '%s\n' 'Docker Compose не найден: установите docker compose или docker-compose.' >&2; exit 1; fi
@@ -27,6 +28,7 @@ up: ## Собрать, установить зависимости и подня
 	@if ! grep -Eq '^APP_KEY=.+$$' "$(PROJECT_ROOT)/.env"; then $(COMPOSE) run --rm --no-deps app php artisan key:generate --force; fi
 	$(COMPOSE) up -d mysql redis app nginx
 	$(EXEC) php artisan migrate --force
+	$(EXEC) php artisan l5-swagger:generate
 	$(COMPOSE) up -d queue-worker
 
 down: ## Остановить контейнеры
@@ -65,4 +67,14 @@ lint-larastan: ## Проверить типы через Larastan
 fix: ## Исправить стиль кода
 	$(EXEC) ./vendor/bin/pint --config=tools/pint.json
 
+swagger: ## Перегенерировать OpenAPI-документацию (/api/documentation)
+	$(EXEC) php artisan l5-swagger:generate
+
 ci: lint test ## Запустить все проверки и тесты без автоисправлений
+
+up-prod: ## Собрать и поднять prod-конфигурацию (без bind-mount, без dev-зависимостей)
+	@test -f "$(PROJECT_ROOT)/.env" || cp "$(PROJECT_ROOT)/.env.example" "$(PROJECT_ROOT)/.env"
+	$(COMPOSE_PROD) up -d --build
+
+down-prod: ## Остановить prod-конфигурацию
+	$(COMPOSE_PROD) down

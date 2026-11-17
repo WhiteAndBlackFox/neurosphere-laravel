@@ -89,5 +89,8 @@ jobs:
           php artisan migrate --force
           php artisan db:seed --force
 
+      - name: Generate OpenAPI docs
+        run: php artisan l5-swagger:generate
+
       - name: Tests (MySQL)
         run: ./vendor/bin/phpunit --configuration=tools/phpunit-ci.xml
