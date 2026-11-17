@@ -123,24 +123,52 @@ curl http://localhost:8080/api/v1/generations -H "Authorization: Bearer $TOKEN"
 curl http://localhost:8080/api/v1/subscription/quota -H "Authorization: Bearer $TOKEN"
 ```
 
+## API documentation (Swagger / OpenAPI)
+
+Interactive docs are generated from `#[OA\...]` PHP attributes on the
+controllers (via `darkaonline/l5-swagger`) — the source of truth is the code,
+not a hand-maintained YAML file.
+
+- Swagger UI: `http://localhost:8080/api/documentation`
+- Raw OpenAPI JSON: `http://localhost:8080/docs`
+
+`make up` regenerates the docs automatically. After changing a controller's
+annotations, run `make swagger` to regenerate without a full `make up`. The
+generated `storage/api-docs/` is gitignored, same as `bootstrap/cache`; CI
+regenerates it on every run to catch broken annotations before merge.
+
 `make up` creates `.env` if necessary, builds the PHP image, installs Composer
 dependencies, generates a missing application key, waits for MySQL and Redis,
 runs migrations, and starts the queue worker. Existing application keys are kept.
 
 Docker infrastructure is kept in `docker/`: `Dockerfile`, its build-context
-exclusions (`Dockerfile.dockerignore`), `docker-compose.yml`, and `nginx.conf`.
-The root `Makefile` selects the installed Compose command and passes the paths,
-project name, and root `.env` explicitly. Laravel application configuration stays
-in `config/`.
+exclusions (`Dockerfile.dockerignore`), `docker-compose.yml` (dev), `docker-compose.prod.yml`
+(prod), and `nginx.conf`. The root `Makefile` selects the installed Compose
+command and passes the paths, project name, and root `.env` explicitly.
+Laravel application configuration stays in `config/`.
 
 The services are PHP-FPM (`app`), nginx, MySQL 8, Redis 7 and `queue-worker`.
 Only nginx is published to the host, at `127.0.0.1:8080`. Override `APP_PORT` to
 use another port. Bind mounts use UID/GID 1000 by default; set `LOCAL_UID` and
 `LOCAL_GID` in `.env` when your host user has different IDs.
 
+### Dev vs. prod Docker
+
+`docker/Dockerfile` is multi-stage: `dev` (installs dev dependencies; code
+comes from the bind mount so edits apply without a rebuild), `prod`
+(`composer install --no-dev`, code baked into the image, no bind mount), and
+`nginx-prod` (bakes `public/` and `nginx.conf` into its own image too, since
+prod nginx has nothing to bind-mount from). `docker-compose.yml` (used by
+`make up`) always builds the `dev` target; `docker-compose.prod.yml` builds
+`prod`/`nginx-prod` and adds `restart: always` everywhere. Bring up the prod
+profile with `make up-prod` / `make down-prod` — it still runs its own MySQL
+and Redis containers (no K8s/managed-service config is in scope here), just
+without bind mounts or dev tooling.
+
 | Command | Purpose |
 | --- | --- |
-| `make up` / `make down` / `make restart` | Manage the environment |
+| `make up` / `make down` / `make restart` | Manage the dev environment |
+| `make up-prod` / `make down-prod` | Manage the prod-profile environment |
 | `make sh` | Open an application shell |
 | `make migrate` | Apply migrations |
 | `make seed` | Run seeders |
@@ -148,6 +176,7 @@ use another port. Bind mounts use UID/GID 1000 by default; set `LOCAL_UID` and
 | `make test` | Run tests |
 | `make lint` | Check PHP syntax, Pint and Larastan without fixing code |
 | `make fix` | Apply Pint formatting |
+| `make swagger` | Regenerate the OpenAPI docs |
 | `make ci` | Run lint and tests |
 
 Quality-tool configuration lives in `tools/`: `pint.json`, `phpstan.neon`, and
