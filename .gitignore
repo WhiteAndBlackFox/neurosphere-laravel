@@ -6,6 +6,7 @@
 .phpactor.json
 .phpunit.result.cache
 /.codex
+/.claude
 /.cursor/
 /.idea
 /.nova
@@ -23,3 +24,4 @@ Homestead.yaml
 Thumbs.db
 task.md
 plan.md
+skills-lock.json
