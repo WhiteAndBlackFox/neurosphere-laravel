@@ -8,6 +8,7 @@ use App\Actions\Generations\CreateGenerationAction;
 use App\DTOs\Generations\CreateGenerationData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateGenerationRequest;
+use App\Http\Resources\GenerationCreatedResource;
 use App\Http\Resources\GenerationTaskResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,14 +25,9 @@ final class GenerationController extends Controller
         $task = $this->action->execute($request->user(), CreateGenerationData::fromRequest($request));
 
         $subscription = $request->user()->subscription()->firstOrFail();
+        $remaining = $subscription->monthly_limit - $subscription->used_quota;
 
-        return response()->json([
-            'data' => [
-                'id' => $task->id,
-                'status' => $task->status->value,
-                'quota_remaining' => $subscription->monthly_limit - $subscription->used_quota,
-            ],
-        ], 202);
+        return (new GenerationCreatedResource($task, $remaining))->response()->setStatusCode(202);
     }
 
     public function show(Request $request, int $id): GenerationTaskResource
