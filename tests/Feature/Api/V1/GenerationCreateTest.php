@@ -82,4 +82,17 @@ final class GenerationCreateTest extends TestCase
             'variations' => 1,
         ])->assertStatus(401);
     }
+
+    public function test_it_returns_401_json_even_without_an_accept_header(): void
+    {
+        // postJson() always sends Accept: application/json, which masks a
+        // real bug: Laravel's default guest-redirect tries route('login'),
+        // which doesn't exist on this API-only app, and 500s instead of
+        // 401ing for any client (e.g. plain curl) that omits the header.
+        $this->post('/api/v1/generations', [
+            'type' => 'image',
+            'prompt' => 'neon city at night, cinematic',
+            'variations' => 1,
+        ])->assertStatus(401)->assertHeader('Content-Type', 'application/json');
+    }
 }
